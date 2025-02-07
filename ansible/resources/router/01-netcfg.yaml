@@ -1,0 +1,13 @@
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true
+    eth1:
+      addresses:
+        - 10.10.20.1/24
+      dhcp4: false
+      nameservers:
+          addresses:
+            - 1.1.1.1
+          search: []

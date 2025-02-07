@@ -1,6 +1,10 @@
-
+# What is this?
+This is my own implementation of DetectionLab (https://github.com/clong/DetectionLab) with a focus being on Proxmox as the back-end, so big thanks to @clong for the reference implementation.
 
 # Set up
+The following assumptions are made:
+- The provisioning host and the proxmox device are on the same LAN
+- The interface associated with the LAN on the proxmox device is called `enp7s0` and the IP of the proxmox device is `192.168.0.55`
 
 ## Proxmox
 - Add the following to `/etc/network/interfaces` and execute `ifreload -a` to apply the new configuration once saved
@@ -51,4 +55,27 @@
     sudo apt install -y terraform packer python3-pip sshpass
     packer plugins install github.com/hashicorp/proxmox
     pip3 install ansible pywinrm --user
+    ```
+- Set the following environment variables in the file `.env` within the root of this repository:
+    ```
+    # username goes here
+    PM_USER=infra_as_code@pve
+    # password of the deployment account goes here
+    PM_PASS=asdfASDF1!
+    # the ip address of the proxmox device goes here
+    PM_HOST=192.168.0.55
+    ```
+
+# Deployment
+- Firstly build and push the root images to Proxmox using Packer:
+    ```
+    ./build.sh
+    ```
+- Once built, deploy the infrastructure using Terraform and kick off configuration using Ansible:
+    ```
+    ./deploy.sh
+    ```
+- To destroy the infrastructure use the following:
+    ```
+    ./destory.sh
     ```

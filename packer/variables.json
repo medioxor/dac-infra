@@ -3,9 +3,9 @@
 	"provisioning_machine_ip": "",
 	"proxmox_network_with_dhcp_and_internet": "vmbr0",
 	"proxmox_skip_tls_verify": "true",
-    "proxmox_host": "{{env `PROXMOX`}}",
-    "username": "{{env `USERNAME`}}",
-    "password": "{{env `PASSWORD`}}",
+    "proxmox_host": "{{env `PM_HOST`}}",
+    "username": "{{env `PM_USER`}}",
+    "password": "{{env `PM_PASS`}}",
 	"proxmox_disk_storage_pool": "local-lvm",
 	"proxmox_iso_storage_pool": "local"
 }

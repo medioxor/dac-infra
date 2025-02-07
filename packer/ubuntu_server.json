@@ -52,8 +52,8 @@
           "boot<enter>"
         ],
         "ssh_timeout": "10000s",
-        "ssh_username": "vagrant",
-        "ssh_password": "vagrant",
+        "ssh_username": "deploy",
+        "ssh_password": "deploy",
         "qemu_agent": true,
         "template_name": "Ubuntu2504",
         "template_description": "Ubuntu 25.04, generated on {{ isotime \"2025-01-02T15:04:05Z\" }}"
@@ -70,15 +70,15 @@
           "pause_before": "20s",
           "type": "shell",
           "environment_vars": [
-              "HOME_DIR=/home/vagrant"
+              "HOME_DIR=/home/deploy"
           ],
-          "execute_command": "echo 'vagrant' | {{.Vars}} sudo -S -E sh -eux '{{.Path}}'",
+          "execute_command": "echo 'deploy' | {{.Vars}} sudo -S -E sh -eux '{{.Path}}'",
           "expect_disconnect": true,
           "scripts": [ 
               "./deps/update.sh",
               "./deps/networking.sh",
               "./deps/sudoers.sh",
-              "./deps/vagrant.sh",
+              "./deps/deploy.sh",
               "./deps/cleanup.sh"
           ]
       }

@@ -1,2 +1,8 @@
 .env
 downloaded_iso_path
+.terraform
+.terraform.lock.hcl
+terraform.tfstate
+.terraform.tfstate.lock.info
+terraform.tfstate.backup
+inventory.yml

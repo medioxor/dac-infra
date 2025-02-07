@@ -1,0 +1,19 @@
+- name: Set hostname to router
+  hostname:
+    name: router
+  become: yes
+
+- name: Copy netplan file
+  copy:
+    src: ./resources/router/01-netcfg.yaml
+    dest: /tmp
+    owner: deploy
+    group: deploy
+
+- name: Copy the netplan file over as root
+  shell: "mv /tmp/01-netcfg.yaml /etc/netplan/01-netcfg.yaml && chmod 600 /etc/netplan/01-netcfg.yaml"
+  become: yes
+
+- name: Apply the new netplan
+  shell: netplan apply
+  become: yes

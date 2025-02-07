@@ -13,6 +13,9 @@ dpkg --list \
     | grep -v `uname -r` \
     | xargs apt-get -y purge;
 
+echo "remove cloud-init netplan"
+rm /etc/netplan/50-cloud-init.yaml
+
 echo "remove all development packages"
 dpkg --list \
     | awk '{ print $2 }' \

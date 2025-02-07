@@ -20,9 +20,9 @@ autoinstall:
     package_upgrade: true
     timezone: Etc/UTC
     users:
-      - name: vagrant
-        # password is "vagrant"
-        passwd: $y$j9T$b3k35jaEKQsLBmc.G2DP71$bAZ6WOtt6TRCD.vbku4axTISwxp96zMaCGLKEx6KeU5
+      - name: deploy
+        # password is "deploy"
+        passwd: $y$j9T$0OOhQWXzlRcAERWjb.6Ng/$vkC1z/YsJb73/8HzdTvbWQhKGOuiW5dxqyFpnKLof84
         groups: [adm, cdrom, dip, plugdev, lxd, sudo]
         lock-passwd: false
         sudo: ALL=(ALL) NOPASSWD:ALL
