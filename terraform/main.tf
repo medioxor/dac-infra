@@ -1,15 +1,27 @@
+variable "USERNAME" {
+  type = string
+}
+
+variable "PASSWORD" {
+  type = string
+}
+
+variable "PROXMOX" {
+  type = string
+}
+
 provider "proxmox" {
-    pm_api_url   = "https://your-proxmox-host:8006/api2/json"
-    pm_user      = "blog_example"
-    pm_password  = "your-api-key"
+    pm_api_url   = "https://${var.PROXMOX}:8006/api2/json"
+    pm_user      = var.USERNAME
+    pm_password  = var.PASSWORD
     pm_tls_insecure = true
 }
 
 resource "proxmox_vm_qemu" "my_vm" {
-    name       = "my-vm"
+    name       = "zeek"
     target_node = "pve"
-    clone      = "ubuntu-template"
+    clone      = "Ubuntu2504"
     storage    = "local-lvm"
-    cores      = 2
+    cores      = 1
     memory     = 2048
 }

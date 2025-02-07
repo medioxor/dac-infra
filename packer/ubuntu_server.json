@@ -1,18 +1,18 @@
 {
     "builders": [
       {
-        "type": "proxmox",
-        "proxmox_url": "https://{{env `PROXMOX`}}:8006/api2/json",
+        "type": "proxmox-iso",
+        "proxmox_url": "https://{{user `proxmox_host`}}:8006/api2/json",
         "insecure_skip_tls_verify": "{{user `proxmox_skip_tls_verify`}}",
         "pool": "{{user `proxmox_vm_pool`}}",
-        "username": "{{env `TOKEN_ID`}}",
-        "token": "{{env `TOKEN`}}",
-        "vm_name": "Ubuntu2004",
+        "username": "{{user `username`}}",
+        "password": "{{user `password`}}",
+        "vm_name": "Ubuntu2504",
         "node": "{{user `proxmox_node`}}",
         "sockets": 1,
-        "cores": 2,
+        "cores": 1,
         "cpu_type": "host",
-        "memory": 4096,
+        "memory": 2048,
         "os": "l26",
         "network_adapters": [
           {
@@ -25,7 +25,6 @@
             "type": "scsi",
             "disk_size": "64G",
             "storage_pool": "{{user `proxmox_disk_storage_pool`}}",
-            "storage_pool_type": "{{user `proxmox_disk_storage_type`}}",
             "cache_mode": "writeback",
             "format": "raw"
           }
@@ -34,46 +33,39 @@
           "type": "std",
           "memory": 32
         },
+        "boot_iso": {
+          "type": "scsi",
+          "iso_url": "http://cdimage.ubuntu.com/ubuntu-server/daily-live/current/plucky-live-server-amd64.iso",
+          "iso_checksum": "a6db1afebbbdfb924a4414399a23074745ec89ef31c8ceaceba69ccb33bd834e",
+          "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
+          "unmount": true
+        },
         "scsi_controller": "virtio-scsi-pci",
-        "iso_url": "http://cdimage.ubuntu.com/ubuntu-legacy-server/releases/20.04/release/ubuntu-20.04.1-legacy-server-amd64.iso",
-        "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
-        "iso_checksum": "f11bda2f2caed8f420802b59f382c25160b114ccc665dbac9c5046e7fceaced2",
         "boot_wait": "10s",
-        "boot": "order=scsi0;ide2",
+        "http_directory": "http",
+        "http_bind_address": "{{user `provisioning_machine_ip`}}",
         "boot_command": [
-          "<esc><wait>",
-          "<esc><wait>",
+          "c",
+          "linux /casper/vmlinuz --- autoinstall ds='nocloud-net;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/' ",
           "<enter><wait>",
-          "/install/vmlinuz<wait>",
-          " auto<wait>",
-          " console-setup/ask_detect=false<wait>",
-          " console-setup/layoutcode=us<wait>",
-          " console-setup/modelcode=pc105<wait>",
-          " debconf/frontend=noninteractive<wait>",
-          " debian-installer=en_US.UTF-8<wait>",
-          " fb=false<wait>",
-          " initrd=/install/initrd.gz<wait>",
-          " kbd-chooser/method=us<wait>",
-          " keyboard-configuration/layout=USA<wait>",
-          " keyboard-configuration/variant=USA<wait>",
-          " locale=en_US.UTF-8<wait>",
-          " netcfg/get_domain=vm<wait>",
-          " netcfg/get_hostname=vagrant<wait>",
-          " grub-installer/bootdev=/dev/sda<wait>",
-          " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg<wait>",
-          " -- <wait>",
-          "<enter><wait>"
+          "initrd /casper/initrd<enter><wait>",
+          "boot<enter>"
         ],
         "ssh_timeout": "10000s",
         "ssh_username": "vagrant",
         "ssh_password": "vagrant",
         "qemu_agent": true,
-        "unmount_iso": true,
-        "template_name": "Ubuntu2004",
-        "template_description": "Ubuntu 20.04, generated on {{ isotime \"2006-01-02T15:04:05Z\" }}"
+        "template_name": "Ubuntu2504",
+        "template_description": "Ubuntu 25.04, generated on {{ isotime \"2025-01-02T15:04:05Z\" }}"
       }
     ],
     "provisioners": [
+      {
+        "type": "shell",
+        "inline": [
+          "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done"
+        ]
+      },
       {
           "pause_before": "20s",
           "type": "shell",
@@ -83,13 +75,11 @@
           "execute_command": "echo 'vagrant' | {{.Vars}} sudo -S -E sh -eux '{{.Path}}'",
           "expect_disconnect": true,
           "scripts": [ 
-              "../../ESXi/Packer/scripts/update.sh",
-              "../../ESXi/Packer/_common/motd.sh",
-              "../../ESXi/Packer/_common/sshd.sh",
-              "../../ESXi/Packer/scripts/networking.sh",
-              "../../ESXi/Packer/scripts/sudoers.sh",
-              "../../ESXi/Packer/scripts/vagrant.sh",
-              "../../ESXi/Packer/scripts/cleanup.sh"
+              "./deps/update.sh",
+              "./deps/networking.sh",
+              "./deps/sudoers.sh",
+              "./deps/vagrant.sh",
+              "./deps/cleanup.sh"
           ]
       }
     ]

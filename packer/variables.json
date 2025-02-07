@@ -1,8 +1,11 @@
 {
-	"proxmox_node": "pve",
+	"proxmox_node": "proxmox",
+	"provisioning_machine_ip": "",
 	"proxmox_network_with_dhcp_and_internet": "vmbr0",
 	"proxmox_skip_tls_verify": "true",
+    "proxmox_host": "{{env `PROXMOX`}}",
+    "username": "{{env `USERNAME`}}",
+    "password": "{{env `PASSWORD`}}",
 	"proxmox_disk_storage_pool": "local-lvm",
-	"proxmox_disk_storage_type": "lvm-thin",
 	"proxmox_iso_storage_pool": "local"
 }
