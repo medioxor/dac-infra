@@ -17,3 +17,52 @@
 - name: Apply the new netplan
   shell: netplan apply
   become: yes
+
+- name: Install DHCP, bind9, and iptables persistence
+  shell: |
+    echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+    echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+    apt install -y isc-dhcp-server iptables-persistent bind9
+  become: yes
+
+- name: Copy dhcp file
+  copy:
+    src: ./resources/router/dhcpd.conf
+    dest: /tmp
+    owner: deploy
+    group: deploy
+
+- name: Copy the dhcp file over as root
+  shell: "mv /tmp/dhcpd.conf /etc/dhcp/dhcpd.conf"
+  become: yes
+
+- name: Add interface
+  shell: sed -i 's/^INTERFACESv4=""/INTERFACESv4="eth1"/' /etc/default/isc-dhcp-server
+  become: yes
+
+- name: Start DHCP service
+  shell: |
+    systemctl restart isc-dhcp-server
+    systemctl enable isc-dhcp-server
+  become: yes
+
+- name: Enable ip forwarding
+  shell: |
+    rm /etc/sysctl.conf
+    echo net.ipv4.ip_forward=1 > /etc/sysctl.d/99-sysctl.conf
+    service procps force-reload
+  become: yes
+
+- name: IPTables config
+  shell: |
+    iptables -A INPUT -i lo -j ACCEPT
+    iptables -A INPUT -i eth1 -j ACCEPT
+    # Accept incoming packets from the WAN if the router initiated the connection
+    iptables -A INPUT -i eth0 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    # Forward LAN packets to the WAN
+    iptables -A FORWARD -i eth1 -o eth0 -j ACCEPT
+    # Forward WAN packets to the LAN if the LAN initiated the connection
+    iptables -A FORWARD -i eth0 -o eth1 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    iptables -t nat -A POSTROUTING -o eth0 -s 10.10.20.0/24 -j MASQUERADE
+    netfilter-persistent save
+  become: yes
