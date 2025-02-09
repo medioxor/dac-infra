@@ -1,0 +1,82 @@
+{
+    "builders": [
+      {
+        "type":"proxmox-iso",
+        "task_timeout": "1h",
+        "proxmox_url":  "https://{{user `proxmox_host`}}:8006/api2/json",
+        "insecure_skip_tls_verify": "{{user `proxmox_skip_tls_verify`}}",
+        "pool": "{{user `proxmox_vm_pool`}}",
+        "username": "{{ user `username` }}",
+        "password": "{{ user `password` }}",
+        "vm_name": "Windows11",
+        "node": "{{user `proxmox_node`}}",
+        "sockets": 1,
+        "cores": 2,  
+        "cpu_type": "host",
+        "memory": 4096,
+        "os": "win11",
+        "network_adapters": [
+          {
+            "model": "virtio",
+            "bridge": "{{user `proxmox_network_with_dhcp_and_internet`}}"
+          }
+        ],
+        "disks": [
+          {
+            "type": "scsi",
+            "disk_size": "64G",
+            "storage_pool": "{{user `proxmox_disk_storage_pool`}}",
+            "storage_pool_type": "{{user `proxmox_disk_storage_type`}}",
+            "cache_mode": "writeback",
+            "format": "raw"
+          }
+        ],
+        "vga": {
+          "type": "std",
+          "memory": 256
+        },
+        "boot_iso": {
+          "type": "scsi",
+          "iso_url": "https://software-download.microsoft.com/download/pr/22000.194.210913-1444.co_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso",
+          "iso_download_pve": true,
+          "iso_checksum": "e8b1d2a1a85a09b4bf6154084a8be8e3c814894a15a7bcf3e8e63fcfa9a528cb",
+          "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
+          "unmount": true
+        },
+        "boot": "order=scsi0;scsi1",
+        "scsi_controller": "virtio-scsi-pci",
+        "boot_wait": "6m",
+        "additional_iso_files": [
+          {
+            "cd_files": [
+              "./deps/windows_11/Autounattend.xml"
+            ],
+            "cd_label": "cidata",
+            "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}"
+          },
+          {
+            "iso_url": "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.266-1/virtio-win-0.1.266.iso",
+            "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
+            "iso_checksum": "57b0f6dc8dc92dc2ae8621f8b1bfbd8a873de9bedc788c4c4b305ea28acc77cd",
+            "iso_download_pve": true,
+            "unmount": true
+          }
+        ],
+        "communicator": "winrm",
+        "winrm_username": "deploy",
+        "winrm_password": "deploy",
+        "winrm_timeout": "4h",
+        "qemu_agent": true,
+        "template_name": "Windows11",
+        "template_description": "Windows 11, generated on {{ isotime \"2025-01-02T15:04:05Z\" }}"
+      }
+    ],
+    "provisioners": [
+      {
+        "type": "powershell",
+        "scripts": [
+          "./deps/windows_11/update-windows.ps1"
+        ]
+      }
+    ]
+}

@@ -2,6 +2,7 @@
     "builders": [
       {
         "type": "proxmox-iso",
+        "task_timeout": "1h",
         "proxmox_url": "https://{{user `proxmox_host`}}:8006/api2/json",
         "insecure_skip_tls_verify": "{{user `proxmox_skip_tls_verify`}}",
         "pool": "{{user `proxmox_vm_pool`}}",
@@ -36,6 +37,7 @@
         "boot_iso": {
           "type": "scsi",
           "iso_url": "http://cdimage.ubuntu.com/ubuntu-server/daily-live/current/plucky-live-server-amd64.iso",
+          "iso_download_pve": true,
           "iso_checksum": "a6db1afebbbdfb924a4414399a23074745ec89ef31c8ceaceba69ccb33bd834e",
           "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
           "unmount": true
@@ -75,11 +77,11 @@
           "execute_command": "echo 'deploy' | {{.Vars}} sudo -S -E sh -eux '{{.Path}}'",
           "expect_disconnect": true,
           "scripts": [ 
-              "./deps/update.sh",
-              "./deps/networking.sh",
-              "./deps/sudoers.sh",
-              "./deps/deploy.sh",
-              "./deps/cleanup.sh"
+              "./ubuntu/deps/update.sh",
+              "./ubuntu/deps/networking.sh",
+              "./ubuntu/deps/sudoers.sh",
+              "./ubuntu/deps/deploy.sh",
+              "./ubuntu/deps/cleanup.sh"
           ]
       }
     ]
