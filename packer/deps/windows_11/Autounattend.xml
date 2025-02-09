@@ -98,22 +98,14 @@
 				</RunSynchronousCommand>
 				<RunSynchronousCommand wcm:action="add">
 					<Order>3</Order>
-					<Path>powershell.exe -NoProfile -Command "Get-Content -LiteralPath 'C:\Windows\Setup\Scripts\fix-network.ps1' -Raw | Invoke-Expression;"</Path>
-				</RunSynchronousCommand>
-				<RunSynchronousCommand wcm:action="add">
-					<Order>4</Order>
-					<Path>powershell.exe -NoProfile -Command "Get-Content -LiteralPath 'C:\Windows\Setup\Scripts\enable-winrm.ps1' -Raw | Invoke-Expression;"</Path>
-				</RunSynchronousCommand>
-				<RunSynchronousCommand wcm:action="add">
-					<Order>5</Order>
 					<Path>reg.exe load "HKU\DefaultUser" "C:\Users\Default\NTUSER.DAT"</Path>
 				</RunSynchronousCommand>
 				<RunSynchronousCommand wcm:action="add">
-					<Order>6</Order>
+					<Order>4</Order>
 					<Path>powershell.exe -NoProfile -Command "Get-Content -LiteralPath 'C:\Windows\Setup\Scripts\DefaultUser.ps1' -Raw | Invoke-Expression;"</Path>
 				</RunSynchronousCommand>
 				<RunSynchronousCommand wcm:action="add">
-					<Order>7</Order>
+					<Order>5</Order>
 					<Path>reg.exe unload "HKU\DefaultUser"</Path>
 				</RunSynchronousCommand>
 			</RunSynchronous>
@@ -165,6 +157,26 @@
 					<Order>1</Order>
 					<CommandLine>powershell.exe -NoProfile -Command "Get-Content -LiteralPath 'C:\Windows\Setup\Scripts\FirstLogon.ps1' -Raw | Invoke-Expression;"</CommandLine>
 				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<Order>2</Order>
+					<CommandLine>powershell.exe -NoProfile -Command "Get-Content -LiteralPath 'C:\Windows\Setup\Scripts\fix-network.ps1' -Raw | Invoke-Expression;"</CommandLine>
+					<Description>Fix Network</Description>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<Order>3</Order>
+					<CommandLine>powershell.exe -NoProfile -Command "Get-Content -LiteralPath 'C:\Windows\Setup\Scripts\enable-winrm.ps1' -Raw | Invoke-Expression;"</CommandLine>
+					<Description>Enable WinRM</Description>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+                    <CommandLine>cmd.exe /c wmic useraccount where "name='deploy'" set PasswordExpires=FALSE</CommandLine>
+                    <Order>4</Order>
+                    <Description>Disable password expiration for deploy user</Description>
+                </SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<Order>5</Order>
+                    <CommandLine>cmd.exe /c C:\Windows\Setup\Scripts\enable-updates.bat</CommandLine>
+					<Description>Enable Windows updates</Description>
+                </SynchronousCommand>
 			</FirstLogonCommands>
 		</component>
 	</settings>
@@ -278,6 +290,20 @@ netsh advfirewall firewall set rule name="Windows Remote Management (HTTP-In)" n
 sc config winrm start= disabled
 reg add HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce /v StartWinRM /t REG_SZ /f /d "cmd.exe /c 'sc config winrm start= auto &amp; sc start winrm'"
 Restart-Service winrm
+		</File>
+		<File path="C:\Windows\Setup\Scripts\enable-updates.bat">
+net stop wuauserv
+
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update" /v EnableFeaturedSoftware /t REG_DWORD /d 1 /f
+
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update" /v IncludeRecommendedUpdates /t REG_DWORD /d 1 /f
+
+echo Set ServiceManager = CreateObject("Microsoft.Update.ServiceManager") &gt; C:\temp.vbs
+echo Set NewUpdateService = ServiceManager.AddService2("7971f918-a847-4430-9279-4a52d1efe18d",7,"") &gt;&gt; C:\temp.vbs
+
+cscript C:\temp.vbs
+del C:\temp.vbs
+net start wuauserv
 		</File>
 		<File path="C:\Windows\Setup\Scripts\fix-network.ps1">
 if([environment]::OSVersion.version.Major -lt 6) { return }

@@ -1,3 +1,11 @@
+param($global:RestartRequired=0,
+        $global:MoreUpdates=0,
+        $global:MaxCycles=5,
+        $MaxUpdatesPerCycle=500,
+        $BeginWithRestart=0)
+
+$Logfile = "C:\Windows\Temp\win-updates.log"
+
 function LogWrite {
    Param ([string]$logstring)
    $now = Get-Date -format s
@@ -23,10 +31,8 @@ function Check-ContinueRestartOrEnd() {
                 Install-WindowsUpdates
             } elseif ($script:Cycles -gt $global:MaxCycles) {
                 LogWrite "Exceeded Cycle Count - Stopping"
-                Invoke-Expression "a:\enable-winrm.ps1"
             } else {
                 LogWrite "Done Installing Windows Updates"
-                Invoke-Expression "a:\enable-winrm.ps1"
             }
         }
         1 {
@@ -118,7 +124,6 @@ function Install-WindowsUpdates() {
         LogWrite 'No updates available to install...'
         $global:MoreUpdates=0
         $global:RestartRequired=0
-        Invoke-Expression "a:\enable-winrm.ps1"
         break
     }
 
@@ -207,35 +212,6 @@ function Check-WindowsUpdates() {
         $global:MoreUpdates=0
     }
 }
-
-# Stop Windows Update service
-Stop-Service -Name wuauserv -Force
-
-# Modify registry settings
-$regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update"
-Set-ItemProperty -Path $regPath -Name EnableFeaturedSoftware -Type DWord -Value 1
-Set-ItemProperty -Path $regPath -Name IncludeRecommendedUpdates -Type DWord -Value 1
-
-# Create the VBScript file
-$vbscriptPath = "A:\temp.vbs"
-@"
-Set ServiceManager = CreateObject("Microsoft.Update.ServiceManager")
-Set NewUpdateService = ServiceManager.AddService2("7971f918-a847-4430-9279-4a52d1efe18d",7,"")
-"@ | Out-File -FilePath $vbscriptPath -Encoding ASCII
-
-# Run the VBScript
-cscript $vbscriptPath
-
-# Start Windows Update service
-Start-Service -Name wuauserv
-
-param($global:RestartRequired=0,
-        $global:MoreUpdates=0,
-        $global:MaxCycles=5,
-        $MaxUpdatesPerCycle=500,
-        $BeginWithRestart=0)
-
-$Logfile = "C:\Windows\Temp\win-updates.log"
 
 $script:ScriptName = $MyInvocation.MyCommand.ToString()
 $script:ScriptPath = $MyInvocation.MyCommand.Path
