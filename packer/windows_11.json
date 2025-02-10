@@ -12,7 +12,7 @@
         "node": "{{user `proxmox_node`}}",
         "sockets": 1,
         "cores": 2,  
-        "cpu_type": "host",
+        "cpu_type": "x86-64-v2-AES",
         "memory": 4096,
         "os": "win11",
         "network_adapters": [
@@ -36,14 +36,14 @@
           "memory": 256
         },
         "boot_iso": {
-          "type": "scsi",
-          "iso_url": "https://software-download.microsoft.com/download/pr/22000.194.210913-1444.co_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso",
+          "type": "ide",
+          "iso_url": "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26100.1742.240906-0331.ge_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso",
           "iso_download_pve": true,
-          "iso_checksum": "e8b1d2a1a85a09b4bf6154084a8be8e3c814894a15a7bcf3e8e63fcfa9a528cb",
+          "iso_checksum": "755a90d43e826a74b9e1932a34788b898e028272439b777e5593dee8d53622ae",
           "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
           "unmount": true
         },
-        "boot": "order=scsi0;scsi1",
+        "boot": "order=scsi0;ide0",
         "scsi_controller": "virtio-scsi-pci",
         "boot_wait": "6m",
         "additional_iso_files": [
@@ -74,8 +74,18 @@
     "provisioners": [
       {
         "type": "powershell",
+        "elevated_user": "deploy",
+        "elevated_password": "deploy",
         "scripts": [
           "./deps/windows_11/update-windows.ps1"
+        ]
+      },
+      {
+        "type": "powershell",
+        "elevated_user": "deploy",
+        "elevated_password": "deploy",
+        "scripts": [
+          "./deps/windows_11/disable-screensaver.ps1"
         ]
       }
     ]
