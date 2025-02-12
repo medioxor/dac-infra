@@ -38,17 +38,27 @@
           "type": "scsi",
           "iso_url": "http://cdimage.ubuntu.com/ubuntu-server/daily-live/current/plucky-live-server-amd64.iso",
           "iso_download_pve": true,
-          "iso_checksum": "a6db1afebbbdfb924a4414399a23074745ec89ef31c8ceaceba69ccb33bd834e",
+          "iso_checksum": "file:http://cdimage.ubuntu.com/ubuntu-server/daily-live/current/SHA256SUMS",
           "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
           "unmount": true
         },
         "scsi_controller": "virtio-scsi-pci",
+        "boot": "order=scsi0;scsi1",
         "boot_wait": "10s",
-        "http_directory": "http",
-        "http_bind_address": "{{user `provisioning_machine_ip`}}",
+        "additional_iso_files": [
+          {
+            "cd_files": [
+              "./deps/ubuntu/user-data",
+              "./deps/ubuntu/meta-data"
+            ],
+            "cd_label": "cidata",
+            "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
+            "unmount": true
+          }
+        ],
         "boot_command": [
           "c",
-          "linux /casper/vmlinuz --- autoinstall ds='nocloud-net;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/' ",
+          "linux /casper/vmlinuz --- autoinstall ds=nocloud;seedfrom=/cidata/",
           "<enter><wait>",
           "initrd /casper/initrd<enter><wait>",
           "boot<enter>"
@@ -77,11 +87,11 @@
           "execute_command": "echo 'deploy' | {{.Vars}} sudo -S -E sh -eux '{{.Path}}'",
           "expect_disconnect": true,
           "scripts": [ 
-              "./ubuntu/deps/update.sh",
-              "./ubuntu/deps/networking.sh",
-              "./ubuntu/deps/sudoers.sh",
-              "./ubuntu/deps/deploy.sh",
-              "./ubuntu/deps/cleanup.sh"
+              "./deps/ubuntu/update.sh",
+              "./deps/ubuntu/networking.sh",
+              "./deps/ubuntu/sudoers.sh",
+              "./deps/ubuntu/deploy.sh",
+              "./deps/ubuntu/cleanup.sh"
           ]
       }
     ]

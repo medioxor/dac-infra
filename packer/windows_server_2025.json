@@ -37,9 +37,9 @@
         },
         "boot_iso": {
           "type": "ide",
-          "iso_url": "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26100.1742.240906-0331.ge_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso",
+          "iso_url": "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26100.1.240331-1435.ge_release_SERVER_EVAL_x64FRE_en-us.iso",
           "iso_download_pve": true,
-          "iso_checksum": "755a90d43e826a74b9e1932a34788b898e028272439b777e5593dee8d53622ae",
+          "iso_checksum": "16442d1c0509bcbb25b715b1b322a15fb3ab724a42da0f384b9406ca1c124ed4",
           "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
           "unmount": true
         },
@@ -68,8 +68,8 @@
         "winrm_password": "deploy",
         "winrm_timeout": "4h",
         "qemu_agent": true,
-        "template_name": "Windows11",
-        "template_description": "Windows 11, generated on {{ isotime \"2025-01-02T15:04:05Z\" }}"
+        "template_name": "WindowsServer2025",
+        "template_description": "Windows Server 2025, generated on {{ isotime \"2025-01-02T15:04:05Z\" }}"
       }
     ],
     "provisioners": [

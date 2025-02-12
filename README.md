@@ -1,3 +1,8 @@
+# Limitations
+- MacOS deployment wont work until https://github.com/hashicorp/packer-plugin-proxmox/pull/251 is merged
+- If deploying with Mac you will need to use root Proxmox credentials, unfortunately this is because Mac requires QEMU args specified via `qemu_additional_args` which can only be set by the root user
+- In order automatically boot to MacOS first and remove the OpenCore dependency check out "Boot MacOS W/out OpenCore" in https://klabsdev.com/definitive-guide-to-running-macos-in-proxmox/
+
 # What is this?
 This is my own implementation of DetectionLab (https://github.com/clong/DetectionLab) with a focus being on Proxmox as the back-end, so big thanks to @clong for the reference implementation.
 
@@ -46,7 +51,7 @@ The following assumptions are made:
     curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
     sudo apt-add-repository "deb [arch=$(dpkg --print-architecture)] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
     sudo apt update
-    sudo apt install -y terraform packer python3-pip sshpass genisoimage
+    sudo apt install -y terraform packer python3-pip sshpass genisoimage curl gunzip
     packer plugins install github.com/hashicorp/proxmox
     pip3 install ansible pywinrm --user
     ```
@@ -58,6 +63,11 @@ The following assumptions are made:
     PM_PASS=asdfASDF1!
     # the ip address of the proxmox device goes here
     PM_HOST=192.168.0.55
+    ```
+- Pull down OpenCore and decompress for MacOS deployments
+    ```
+    curl -L https://github.com/thenickdude/KVM-Opencore/releases/download/v21/OpenCore-v21.iso.gz -o packer/deps/mac/OpenCore-v21.iso.gz
+    gunzip packer/deps/mac/OpenCore-v21.iso.gz
     ```
 
 # Deployment
