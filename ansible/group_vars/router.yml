@@ -1,0 +1,5 @@
+ansible_user: deploy
+ansible_password: deploy
+ansible_connection: ssh
+ansible_port: 22
+ansible_ssh_common_args: '-o UserKnownHostsFile=/dev/null'

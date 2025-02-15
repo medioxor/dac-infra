@@ -1,96 +1,104 @@
 {
-    "builders": [
-      {
-        "type":"proxmox-iso",
-        "task_timeout": "1h",
-        "proxmox_url":  "https://{{user `proxmox_host`}}:8006/api2/json",
-        "insecure_skip_tls_verify": "{{user `proxmox_skip_tls_verify`}}",
-        "pool": "{{user `proxmox_vm_pool`}}",
-        "username": "{{ user `username` }}",
-        "password": "{{ user `password` }}",
-        "vm_name": "Windows11",
-        "node": "{{user `proxmox_node`}}",
-        "sockets": 1,
-        "cores": 2,  
-        "cpu_type": "x86-64-v2-AES",
-        "memory": 4096,
-        "os": "win11",
-        "network_adapters": [
-          {
-            "model": "virtio",
-            "bridge": "{{user `proxmox_network_with_dhcp_and_internet`}}"
-          }
-        ],
-        "disks": [
-          {
-            "type": "scsi",
-            "disk_size": "64G",
-            "storage_pool": "{{user `proxmox_disk_storage_pool`}}",
-            "storage_pool_type": "{{user `proxmox_disk_storage_type`}}",
-            "cache_mode": "writeback",
-            "format": "raw"
-          }
-        ],
-        "vga": {
-          "type": "std",
-          "memory": 256
-        },
-        "boot_iso": {
-          "type": "ide",
-          "iso_url": "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26100.1.240331-1435.ge_release_SERVER_EVAL_x64FRE_en-us.iso",
-          "iso_download_pve": true,
-          "iso_checksum": "16442d1c0509bcbb25b715b1b322a15fb3ab724a42da0f384b9406ca1c124ed4",
+  "builders": [
+    {
+      "type": "proxmox-iso",
+      "task_timeout": "1h",
+      "proxmox_url": "https://{{user `proxmox_host`}}:8006/api2/json",
+      "insecure_skip_tls_verify": "{{user `proxmox_skip_tls_verify`}}",
+      "pool": "{{user `proxmox_vm_pool`}}",
+      "username": "{{ user `username` }}",
+      "password": "{{ user `password` }}",
+      "vm_name": "WindowsServer2025",
+      "node": "{{user `proxmox_node`}}",
+      "sockets": 1,
+      "cores": 2,
+      "cpu_type": "x86-64-v2-AES",
+      "memory": 4096,
+      "os": "win11",
+      "network_adapters": [
+        {
+          "model": "virtio",
+          "bridge": "{{user `proxmox_network_with_dhcp_and_internet`}}"
+        }
+      ],
+      "disks": [
+        {
+          "type": "scsi",
+          "disk_size": "64G",
+          "storage_pool": "{{user `proxmox_disk_storage_pool`}}",
+          "storage_pool_type": "{{user `proxmox_disk_storage_type`}}",
+          "cache_mode": "writeback",
+          "format": "raw"
+        }
+      ],
+      "vga": {
+        "type": "std",
+        "memory": 256
+      },
+      "boot_iso": {
+        "type": "ide",
+        "iso_url": "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26100.1.240331-1435.ge_release_SERVER_EVAL_x64FRE_en-us.iso",
+        "iso_download_pve": true,
+        "iso_checksum": "16442d1c0509bcbb25b715b1b322a15fb3ab724a42da0f384b9406ca1c124ed4",
+        "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
+        "unmount": true
+      },
+      "boot": "order=scsi0;ide0",
+      "scsi_controller": "virtio-scsi-pci",
+      "boot_wait": "6m",
+      "additional_iso_files": [
+        {
+          "cd_files": [
+            "./deps/windows_server_2025/Autounattend.xml"
+          ],
+          "cd_label": "cidata",
           "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
           "unmount": true
         },
-        "boot": "order=scsi0;ide0",
-        "scsi_controller": "virtio-scsi-pci",
-        "boot_wait": "6m",
-        "additional_iso_files": [
-          {
-            "cd_files": [
-              "./deps/windows_11/Autounattend.xml"
-            ],
-            "cd_label": "cidata",
-            "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
-            "unmount": true
-          },
-          {
-            "iso_url": "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.266-1/virtio-win-0.1.266.iso",
-            "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
-            "iso_checksum": "57b0f6dc8dc92dc2ae8621f8b1bfbd8a873de9bedc788c4c4b305ea28acc77cd",
-            "iso_download_pve": true,
-            "unmount": true
-          }
-        ],
-        "communicator": "winrm",
-        "winrm_username": "deploy",
-        "winrm_password": "deploy",
-        "winrm_timeout": "4h",
-        "qemu_agent": true,
-        "template_name": "WindowsServer2025",
-        "template_description": "Windows Server 2025, generated on {{ isotime \"2025-01-02T15:04:05Z\" }}"
-      }
-    ],
-    "provisioners": [
-      {
-        "type": "powershell",
-        "elevated_user": "deploy",
-        "elevated_password": "deploy",
-        "scripts": [
-          "./deps/windows_11/update-windows.ps1"
-        ]
-      },
-      {
-        "type": "windows-restart"
-      },
-      {
-        "type": "powershell",
-        "elevated_user": "deploy",
-        "elevated_password": "deploy",
-        "scripts": [
-          "./deps/windows_11/disable-screensaver.ps1"
-        ]
-      }
-    ]
+        {
+          "iso_url": "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.266-1/virtio-win-0.1.266.iso",
+          "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
+          "iso_checksum": "57b0f6dc8dc92dc2ae8621f8b1bfbd8a873de9bedc788c4c4b305ea28acc77cd",
+          "iso_download_pve": true,
+          "unmount": true
+        }
+      ],
+      "communicator": "winrm",
+      "winrm_username": "deploy",
+      "winrm_password": "deploy",
+      "winrm_timeout": "4h",
+      "qemu_agent": true,
+      "template_name": "WindowsServer2025",
+      "template_description": "Windows Server 2025, generated on {{ isotime \"2025-01-02T15:04:05Z\" }}"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "powershell",
+      "elevated_user": "deploy",
+      "elevated_password": "deploy",
+      "scripts": [
+        "./deps/windows_11/update-windows.ps1"
+      ]
+    },
+    {
+      "type": "windows-shell",
+      "remote_path": "/tmp/script.bat",
+      "execute_command": "cmd /c \"{{ .Path }}\"",
+      "scripts": [
+        "./deps/windows_11/enable-rdp.bat"
+      ]
+    },
+    {
+      "type": "windows-restart"
+    },
+    {
+      "type": "powershell",
+      "elevated_user": "deploy",
+      "elevated_password": "deploy",
+      "scripts": [
+        "./deps/windows_11/disable-screensaver.ps1"
+      ]
+    }
+  ]
 }

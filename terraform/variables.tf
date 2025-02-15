@@ -10,11 +10,7 @@ variable "vm_disk" {
   default = "local-lvm"
 }
 
-variable "vm_disk_discard" {
-  default = "on"
-}
-
-variable "hostonly_network" {
+variable "proxmox_lan" {
   default = "vmbr0"
 }
 

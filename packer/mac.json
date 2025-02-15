@@ -1,93 +1,85 @@
 {
-    "builders": [
-      {
-        "type": "proxmox-iso",
-        "task_timeout": "1h",
-        "proxmox_url": "https://{{user `proxmox_host`}}:8006/api2/json",
-        "insecure_skip_tls_verify": "{{user `proxmox_skip_tls_verify`}}",
-        "pool": "{{user `proxmox_vm_pool`}}",
-        "username": "{{user `username`}}",
-        "password": "{{user `password`}}",
-        "vm_name": "MacOS",
-        "node": "{{user `proxmox_node`}}",
-        "sockets": 1,
-        "cores": 4,
-        "cpu_type": "x86-64-v2-AES",
-        "memory": 4096,
-        "os": "other",
-        "network_adapters": [
-          {
-            "model": "vmxnet3",
-            "bridge": "{{user `proxmox_network_with_dhcp_and_internet`}}"
-          }
-        ],
-        "disks": [
-          {
-            "type": "virtio",
-            "disk_size": "64G",
-            "storage_pool": "{{user `proxmox_disk_storage_pool`}}",
-            "cache_mode": "writeback",
-            "format": "raw"
-          }
-        ],
-        "bios": "ovmf",
-        "boot": "order=ide0;virtio0",
-        "qemu_additional_args": "-device isa-applesmc,osk=\"ourhardworkbythesewordsguardedpleasedontsteal(c)AppleComputerInc\" -smbios type=2 -device usb-kbd,bus=ehci.0,port=2 -global nec-usb-xhci.msi=off -global ICH9-LPC.acpi-pci-hotplug-with-bridge-support=off -cpu host,vendor=GenuineIntel,+invtsc,+hypervisor,kvm=on,vmware-cpuid-freq=on",
-        "vga": {
-          "type": "vmware",
-          "memory": 512
-        },
-        "boot_iso": {
-          "type": "ide",
-          "iso_url": "./deps/mac/OpenCore-v21.iso",
-          "iso_checksum": "a2b03ae2fb558e0bce99b57b5aff78e650501e39ecbeff0a8f69a8f25d64d76e",
+  "builders": [
+    {
+      "type": "proxmox-iso",
+      "task_timeout": "1h",
+      "proxmox_url": "https://{{user `proxmox_host`}}:8006/api2/json",
+      "insecure_skip_tls_verify": "{{user `proxmox_skip_tls_verify`}}",
+      "pool": "{{user `proxmox_vm_pool`}}",
+      "username": "{{user `username`}}",
+      "password": "{{user `password`}}",
+      "vm_name": "MacOS",
+      "node": "{{user `proxmox_node`}}",
+      "sockets": 1,
+      "cores": 4,
+      "cpu_type": "x86-64-v2-AES",
+      "memory": 4096,
+      "os": "other",
+      "network_adapters": [
+        {
+          "model": "vmxnet3",
+          "bridge": "{{user `proxmox_network_with_dhcp_and_internet`}}"
+        }
+      ],
+      "disks": [
+        {
+          "type": "virtio",
+          "disk_size": "64G",
+          "storage_pool": "{{user `proxmox_disk_storage_pool`}}",
+          "cache_mode": "writeback",
+          "format": "raw"
+        }
+      ],
+      "bios": "ovmf",
+      "boot": "order=ide0;virtio0",
+      "qemu_additional_args": "-device isa-applesmc,osk=\"ourhardworkbythesewordsguardedpleasedontsteal(c)AppleComputerInc\" -smbios type=2 -device usb-kbd,bus=ehci.0,port=2 -global nec-usb-xhci.msi=off -global ICH9-LPC.acpi-pci-hotplug-with-bridge-support=off -cpu host,vendor=GenuineIntel,+invtsc,+hypervisor,kvm=on,vmware-cpuid-freq=on",
+      "vga": {
+        "type": "vmware",
+        "memory": 512
+      },
+      "boot_iso": {
+        "type": "ide",
+        "iso_url": "./deps/mac/OpenCore-v21.iso",
+        "iso_checksum": "a2b03ae2fb558e0bce99b57b5aff78e650501e39ecbeff0a8f69a8f25d64d76e",
+        "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
+        "unmount": true
+      },
+      "machine": "q35",
+      "efi_config": {
+        "efi_storage_pool": "{{user `proxmox_disk_storage_pool`}}",
+        "pre_enrolled_keys": false,
+        "efi_type": "4m"
+      },
+      "scsi_controller": "virtio-scsi-pci",
+      "boot_wait": "100s",
+      "additional_iso_files": [
+        {
+          "iso_url": "https://cdn.klabsdev.com/MacImages/macOS-Sequoia-15.0.iso",
           "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
+          "iso_checksum": "BEDE8EC6FC22EDC4810D4772E4274A506AD6265D12136925CD7D0518FC0E02EB",
+          "iso_download_pve": true,
           "unmount": true
-        },
-        "machine": "q35",
-        "efi_config": {
-          "efi_storage_pool": "{{user `proxmox_disk_storage_pool`}}",
-          "pre_enrolled_keys": false,
-          "efi_type": "4m"
-        },
-        "scsi_controller": "virtio-scsi-pci",
-        "boot_wait": "100s",
-        "additional_iso_files": [
-          {
-            "iso_url": "https://cdn.klabsdev.com/MacImages/macOS-Sequoia-15.0.iso",
-            "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
-            "iso_checksum": "BEDE8EC6FC22EDC4810D4772E4274A506AD6265D12136925CD7D0518FC0E02EB",
-            "iso_download_pve": true,
-            "unmount": true
-          }
-        ],
-        "boot_command": [
-          "<enter><wait15s>",
-          "fs0:<enter><wait>",
-          "System\\Library\\CoreServices\\boot.efi<enter><wait1m>",
-          "<tab><tab><tab><space><wait5s>",
-          "<up><up><up><tab><tab><right><space><wait3s>",
-          "MacOS<tab><tab><tab><tab><space><wait10s><tab><space><leftSuperOn>w<leftSuperOff>",
-          "<tab><tab><tab><space><wait10s><tab><space><wait1m>",
-          "<space><wait><tab><space>",
-          "<leftSuperon><f5><leftSuperoff><wait><leftCtrlOn><leftAltOn><down><down><down><down><right><leftCtrlOff><leftAltOff><leftSuperon><f5><leftSuperoff><space>",
-          "<wait20m><enter><wait30m><enter><wait5m><enter><wait5m><enter><wait3m>",
-          ""
-        ],
-        "ssh_timeout": "10000s",
-        "ssh_username": "deploy",
-        "ssh_password": "deploy",
-        "qemu_agent": true,
-        "template_name": "MacOS",
-        "template_description": "MacOS, generated on {{ isotime \"2025-01-02T15:04:05Z\" }}"
-      }
-    ],
-    "provisioners": [
-      {
-        "type": "shell",
-        "inline": [
-          "id"
-        ]
-      }
-    ]
-  }
+        }
+      ],
+      "boot_command": [
+        "<enter><wait15s>",
+        "fs0:<enter><wait>",
+        "System\\Library\\CoreServices\\boot.efi<enter><wait1m>",
+        "<tab><tab><tab><space><wait5s>",
+        "<up><up><up><tab><tab><right><space><wait3s>",
+        "MacOS<tab><tab><tab><tab><space><wait10s><tab><space><leftSuperOn>w<leftSuperOff>",
+        "<tab><tab><tab><space><wait10s><tab><space><wait1m>",
+        "<space><wait><tab><space>",
+        "<leftSuperon><f5><leftSuperoff><wait><leftCtrlOn><leftAltOn><down><down><down><down><right><leftCtrlOff><leftAltOff><leftSuperon><f5><leftSuperoff><space>",
+        "<wait20m><enter><wait30m><enter><wait5m><enter><wait5m><enter><wait3m>",
+        ""
+      ],
+      "ssh_timeout": "10000s",
+      "ssh_username": "deploy",
+      "ssh_password": "deploy",
+      "qemu_agent": true,
+      "template_name": "MacOS",
+      "template_description": "MacOS, generated on {{ isotime \"2025-01-02T15:04:05Z\" }}"
+    }
+  ]
+}

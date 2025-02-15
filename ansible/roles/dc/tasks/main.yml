@@ -1,0 +1,86 @@
+---
+
+- name: Hostname -> DC
+  win_hostname:
+    name: dc
+  register: res
+
+- name: Install RSAT-AD-PowerShell, RSAT-AD-AdminCenter, and AD-Domain-Services
+  ansible.windows.win_feature:
+    name:
+      - RSAT-AD-PowerShell
+      - RSAT-AD-AdminCenter
+      - AD-Domain-Services
+    state: present
+    include_management_tools: yes
+
+- name: Reboot
+  win_reboot:
+  when: res.reboot_required
+
+- name: Disable Complex Passwords
+  win_shell: |
+    Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Removing password complexity..."
+    secedit /export /cfg C:\secpol.cfg
+    (gc C:\secpol.cfg).replace("PasswordComplexity = 1", "PasswordComplexity = 0") | Out-File C:\secpol.cfg
+    secedit /configure /db C:\Windows\security\local.sdb /cfg C:\secpol.cfg /areas SECURITYPOLICY
+    rm -force C:\secpol.cfg -confirm:$false
+
+- name: Create Domain
+  win_shell: |
+    Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Creating domain..."
+    Import-Module ServerManager
+    Import-Module ADDSDeployment
+    $adminUser = [ADSI] "WinNT://$env:COMPUTERNAME/Administrator,User"
+    $adminUser.SetPassword("deploy")
+    $SecurePassword = "deploy" | ConvertTo-SecureString -AsPlainText -Force
+    Install-ADDSForest `
+      -SafeModeAdministratorPassword $SecurePassword `
+      -CreateDnsDelegation:$false `
+      -DatabasePath "C:\Windows\NTDS" `
+      -DomainMode "7" `
+      -DomainName "dac.local" `
+      -DomainNetbiosName "WINDOMAIN" `
+      -ForestMode "7" `
+      -InstallDns:$true `
+      -LogPath "C:\Windows\NTDS" `
+      -NoRebootOnCompletion:$true `
+      -SysvolPath "C:\Windows\SYSVOL" `
+      -Force:$true
+  register: domain_creation
+  changed_when: "'Status         : Success' in domain_creation.stdout"
+  failed_when: "'Exception' in domain_creation.stderr"
+
+- name: Set IP Address
+  win_shell: |
+    Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Setting IP address..."
+    $adapter = Get-NetAdapter | Where-Object { $_.MacAddress -eq "00-50-56-a3-b1-c3" }
+    if (-not $adapter) {
+      Write-Error "No adapter found with MAC address 00-50-56-a3-b1-c3"
+      exit 1
+    }
+    $interfaceAlias = $adapter.InterfaceAlias
+    $ip = "10.10.20.2"
+    $prefixLength = 24
+    $gateway = "10.10.20.1"
+    $dnsServers = "1.1.1.1"
+    Get-NetIPAddress -InterfaceAlias $interfaceAlias -AddressFamily IPv4 | Remove-NetIPAddress -Confirm:$false
+    New-NetIPAddress -InterfaceAlias $interfaceAlias -IPAddress $ip -PrefixLength $prefixLength -DefaultGateway $gateway
+
+- name: Remove stale DNS records
+  win_shell: |
+    Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Removing stale DNS records..."
+    $RRs= Get-DnsServerResourceRecord -ZoneName $domain -type 1 -Name "@"
+    foreach($RR in $RRs) {
+      if ( (Select-Object  -InputObject $RR HostName,RecordType -ExpandProperty RecordData).IPv4Address -ilike "10.*") {
+        Remove-DnsServerResourceRecord -ZoneName $domain -RRType A -Name "@" -RecordData $RR.RecordData.IPv4Address -Confirm
+      }
+    }
+    Restart-Service DNS
+
+- name: Reboot Afer Domain Creation
+  win_reboot:
+    msg: "Installing AD. Rebooting..."
+    pre_reboot_delay: 15
+    reboot_timeout: 600
+    post_reboot_delay: 60

@@ -1,0 +1,5 @@
+---
+
+- name: Test command
+  win_shell: |
+    Write-Host "Hello, world!"

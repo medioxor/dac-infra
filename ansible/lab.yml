@@ -3,3 +3,13 @@
   roles:
     - router
   tags: router
+
+- hosts: dc
+  roles:
+    - dc
+  tags: dc
+
+- hosts: windows_endpoints
+  roles:
+    - windows_endpoint
+  tags: windows_endpoints
