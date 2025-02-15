@@ -70,10 +70,10 @@
 - name: Remove stale DNS records
   win_shell: |
     Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Removing stale DNS records..."
-    $RRs= Get-DnsServerResourceRecord -ZoneName $domain -type 1 -Name "@"
+    $RRs= Get-DnsServerResourceRecord -ZoneName dac.local -type 1 -Name "@"
     foreach($RR in $RRs) {
       if ( (Select-Object  -InputObject $RR HostName,RecordType -ExpandProperty RecordData).IPv4Address -ilike "10.*") {
-        Remove-DnsServerResourceRecord -ZoneName $domain -RRType A -Name "@" -RecordData $RR.RecordData.IPv4Address -Confirm
+        Remove-DnsServerResourceRecord -ZoneName dac.local -RRType A -Name "@" -RecordData $RR.RecordData.IPv4Address -Confirm
       }
     }
     Restart-Service DNS
