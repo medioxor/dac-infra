@@ -14,9 +14,9 @@ attempt=0
 while true; do
     router_ip=$(terraform output -raw router)
     dc_ip=$(terraform output -raw dc)
-    endpoint1_ip=$(terraform output -raw endpoint1)
+    workstation1_ip=$(terraform output -raw workstation1)
 
-    if [ -z "$router_ip" ] || [ -z "$dc_ip" ] || [ -z "$endpoint1_ip" ]; then
+    if [ -z "$router_ip" ] || [ -z "$dc_ip" ] || [ -z "$workstation1_ip" ]; then
         echo "One or more terraform outputs are empty!"
         attempt=$((attempt + 1))
         if [ "$attempt" -gt 5 ]; then
@@ -31,7 +31,7 @@ while true; do
     fi
 done
 
-echo $router_ip $dc_ip $endpoint1_ip
+echo $router_ip $dc_ip $workstation1_ip
 
 cat > ../ansible/inventory.yml << EOF
 ---
@@ -44,9 +44,9 @@ dc:
     hosts:
         $dc_ip
 
-windows_endpoints:
+windows_workstations:
     hosts:
-        $endpoint1_ip
+        $workstation1_ip
 EOF
 
 cd -
@@ -58,7 +58,7 @@ ansible-playbook -v lab.yml --tags dc &
 wait
 ansible-playbook -v lab.yml --tags router &
 wait
-ansible-playbook -v lab.yml --tags windows_endpoints &
+ansible-playbook -v lab.yml --tags windows_workstations &
 wait
 
 cd -

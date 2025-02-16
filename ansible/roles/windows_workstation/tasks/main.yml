@@ -1,0 +1,24 @@
+---
+
+- name: Set DNS to Domain Controller
+  win_shell: |
+    $DomainControllerIP = "10.10.20.2"
+    Get-NetAdapter -Physical | ForEach-Object {
+      Set-DnsClientServerAddress -InterfaceAlias $_.Name -ServerAddresses $DomainControllerIP
+    }
+    Get-NetAdapter -Physical | ForEach-Object {
+      netsh interface ip set wins name="$($_.Name)" static $DomainControllerIP
+    }
+
+- name: Join Workstation to Domain
+  win_shell: |
+    Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Joining domain..."
+    ipconfig /renew
+    $DomainUser = "dac.local\deploy"
+    $DomainPassword = "deploy"
+    $DomainName = "dac.local"
+    $DomainCredential = New-Object System.Management.Automation.PSCredential ($DomainUser, (ConvertTo-SecureString $DomainPassword -AsPlainText -Force))
+    Add-Computer -DomainName $DomainName -credential $DomainCredential -OUPath "ou=Workstations,dc=dac,dc=local" -PassThru -ErrorAction Stop
+  register: domain_join
+  changed_when: "'True' in domain_join.stdout"
+  failed_when: "'InvalidOperationException' in domain_join.stderr"

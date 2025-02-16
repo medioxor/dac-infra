@@ -9,7 +9,7 @@
     - dc
   tags: dc
 
-- hosts: windows_endpoints
+- hosts: windows_workstations
   roles:
-    - windows_endpoint
-  tags: windows_endpoints
+    - windows_workstation
+  tags: windows_workstations

@@ -8,7 +8,7 @@ output "dc" {
   value       = proxmox_vm_qemu.dc.default_ipv4_address
 }
 
-output "endpoint1" {
-  description = "The IP address of endpoint1"
-  value       = proxmox_vm_qemu.endpoint1.default_ipv4_address
+output "workstation1" {
+  description = "The IP address of workstation1"
+  value       = proxmox_vm_qemu.workstation1.default_ipv4_address
 }

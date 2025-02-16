@@ -103,12 +103,12 @@ resource "proxmox_vm_qemu" "dc" {
   }
 }
 
-resource "proxmox_vm_qemu" "endpoint1" {
-  name = "endpoint1"
+resource "proxmox_vm_qemu" "workstation1" {
+  name = "workstation1"
   target_node = var.proxmox_node
   clone = "Windows11"
   full_clone = false
-  desc = "endpoint1"
+  desc = "workstation1"
   cores = "2"
   sockets = "1"
   memory = "4096"

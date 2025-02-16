@@ -40,7 +40,7 @@
       -DatabasePath "C:\Windows\NTDS" `
       -DomainMode "7" `
       -DomainName "dac.local" `
-      -DomainNetbiosName "WINDOMAIN" `
+      -DomainNetbiosName "dac" `
       -ForestMode "7" `
       -InstallDns:$true `
       -LogPath "C:\Windows\NTDS" `
@@ -84,3 +84,58 @@
     pre_reboot_delay: 15
     reboot_timeout: 600
     post_reboot_delay: 60
+
+- name: Configure OU
+  win_shell: |
+    Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Creating Server and Workstation OUs..."
+    $servers_ou_created = 0
+    while ($servers_ou_created -ne 1) {
+      Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Creating Server OU..."
+      try {
+        Get-ADOrganizationalUnit -Identity 'OU=Servers,DC=dac,DC=local' | Out-Null
+        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Servers OU already exists. Moving On."
+        $servers_ou_created = 1
+      }
+      catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
+        New-ADOrganizationalUnit -Name "Servers" -Server "dc.dac.local"
+        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Created Servers OU."
+        $servers_ou_created = 1
+      }
+      catch [Microsoft.ActiveDirectory.Management.ADServerDownException] {
+        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Unable to reach Active Directory. Sleeping for 5 and trying again..."
+        Start-Sleep 5
+      }
+      catch {
+        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Something went wrong attempting to reach AD or create the OU."
+      }
+    }
+
+    $workstations_ou_created = 0
+    while ($workstations_ou_created -ne 1) {
+    Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Creating Workstations OU..."
+      try {
+        Get-ADOrganizationalUnit -Identity 'OU=Workstations,DC=dac,DC=local' | Out-Null
+        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Workstations OU already exists. Moving On."
+        $workstations_ou_created = 1
+      }
+      catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
+        New-ADOrganizationalUnit -Name "Workstations" -Server "dc.dac.local"
+        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Created Workstations OU."
+        $workstations_ou_created = 1
+      }
+      catch [Microsoft.ActiveDirectory.Management.ADServerDownException] {
+        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Unable to reach Active Directory. Sleeping for 5 and trying again..."
+        Start-Sleep 5
+      }
+      catch {
+        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Something went wrong attempting to reach AD or create the OU."
+      }
+    }
+  register: ou_creation
+  vars:
+    ansible_become: yes
+    ansible_become_method: runas
+    ansible_become_user: dac.local\deploy
+    ansible_become_password: deploy
+    ansible_become_flags: logon_type=new_credentials logon_flags=netcredentials_only
+  failed_when: "'Exception' in ou_creation.stderr"
