@@ -5,6 +5,10 @@
     name: dc
   register: res
 
+- name: Reboot
+  win_reboot:
+  when: res.reboot_required
+
 - name: Install RSAT-AD-PowerShell, RSAT-AD-AdminCenter, and AD-Domain-Services
   ansible.windows.win_feature:
     name:
@@ -13,10 +17,6 @@
       - AD-Domain-Services
     state: present
     include_management_tools: yes
-
-- name: Reboot
-  win_reboot:
-  when: res.reboot_required
 
 - name: Disable Complex Passwords
   win_shell: |
