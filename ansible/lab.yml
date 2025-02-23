@@ -2,14 +2,41 @@
 - hosts: router
   roles:
     - router
-  tags: router
+  tags:
+    - router
 
 - hosts: dc
   roles:
     - dc
-  tags: dc
+    - windows
+  tags:
+    - dc
+
+- hosts: wef
+  roles:
+    - wef
+    - windows
+  tags:
+    - wef
 
 - hosts: windows_workstations
   roles:
     - windows_workstation
-  tags: windows_workstations
+    - windows
+  tags:
+    - windows_workstations
+
+- hosts: dc
+  roles:
+    - final_touches
+  tags:
+    - final_touches
+
+- hosts:
+  - dc
+  - wef
+  - windows_workstations
+  roles:
+    - reboot
+  tags:
+    - reboot

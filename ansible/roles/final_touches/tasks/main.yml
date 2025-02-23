@@ -1,0 +1,9 @@
+- name: Add Computers as WEF sources
+  win_shell: |
+    $ADGroups=(Get-ADGroup -SearchBase "OU=WEF Rules,OU=Workshop,DC=dac,DC=local" -Filter *).Name
+    $servers = Get-ADComputer -Filter {OperatingSystem -like '*Windows*'} -SearchBase "DC=dac,DC=local" | select -ExpandProperty Name
+    foreach ($Server in $servers){
+      foreach ($ADGroup in $ADGroups){
+        Add-ADGroupMember -Members "$($server)$" -Identity $ADGroup
+      }
+    }

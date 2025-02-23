@@ -40,7 +40,7 @@
       -DatabasePath "C:\Windows\NTDS" `
       -DomainMode "7" `
       -DomainName "dac.local" `
-      -DomainNetbiosName "dac" `
+      -DomainNetbiosName "DAC" `
       -ForestMode "7" `
       -InstallDns:$true `
       -LogPath "C:\Windows\NTDS" `
@@ -50,6 +50,7 @@
   register: domain_creation
   changed_when: "'Status         : Success' in domain_creation.stdout"
   failed_when: "'Exception' in domain_creation.stderr"
+  retries: 3
 
 - name: Set IP Address
   win_shell: |
@@ -80,62 +81,110 @@
 
 - name: Reboot Afer Domain Creation
   win_reboot:
-    msg: "Installing AD. Rebooting..."
+    msg: "Rebooting..."
     pre_reboot_delay: 15
     reboot_timeout: 600
     post_reboot_delay: 60
 
 - name: Configure OU
   win_shell: |
-    Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Creating Server and Workstation OUs..."
-    $servers_ou_created = 0
-    while ($servers_ou_created -ne 1) {
-      Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Creating Server OU..."
-      try {
-        Get-ADOrganizationalUnit -Identity 'OU=Servers,DC=dac,DC=local' | Out-Null
-        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Servers OU already exists. Moving On."
-        $servers_ou_created = 1
-      }
-      catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
-        New-ADOrganizationalUnit -Name "Servers" -Server "dc.dac.local"
-        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Created Servers OU."
-        $servers_ou_created = 1
-      }
-      catch [Microsoft.ActiveDirectory.Management.ADServerDownException] {
-        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Unable to reach Active Directory. Sleeping for 5 and trying again..."
-        Start-Sleep 5
-      }
-      catch {
-        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Something went wrong attempting to reach AD or create the OU."
-      }
+    New-ADOrganizationalUnit -Name "Servers" -Server "dc.dac.local"
+    New-ADOrganizationalUnit -Name "Workstations" -Server "dc.dac.local"
+    New-ADOrganizationalUnit -Name "Workshop" -Server "dc.dac.local"
+  register: ou_creation
+  failed_when: "'Exception' in ou_creation.stderr"
+
+- name: Create Subscription Groups
+  win_shell: |
+    if (-not ([Net.ServicePointManager]::SecurityProtocol).tostring().contains("Tls12")) {
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    }
+    Invoke-WebRequest -UseBasicParsing -Uri https://github.com/palantir/windows-event-forwarding/archive/master.zip -OutFile $env:USERPROFILE\Downloads\PalantirWEF.zip
+    Expand-Archive -Path $env:USERPROFILE\Downloads\PalantirWEF.zip -DestinationPath $env:USERPROFILE\Downloads
+    
+    $rules=(Get-ChildItem -Path "$env:USERPROFILE\Downloads\windows-event-forwarding-master\wef-subscriptions" | where extension -eq .xml).BaseName
+    $OUPath="OU=Workshop,dc=dac,dc=local"
+    $OUName="WEF Rules"
+
+    New-ADOrganizationalUnit -Name $OUName -Path $OUPath
+
+    foreach ($ruleName in $rules){
+      New-ADGroup -Name $ruleName -Path "OU=$OUName,$OUPath" -GroupScope Global
     }
 
-    $workstations_ou_created = 0
-    while ($workstations_ou_created -ne 1) {
-    Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Creating Workstations OU..."
-      try {
-        Get-ADOrganizationalUnit -Identity 'OU=Workstations,DC=dac,DC=local' | Out-Null
-        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Workstations OU already exists. Moving On."
-        $workstations_ou_created = 1
-      }
-      catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
-        New-ADOrganizationalUnit -Name "Workstations" -Server "dc.dac.local"
-        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Created Workstations OU."
-        $workstations_ou_created = 1
-      }
-      catch [Microsoft.ActiveDirectory.Management.ADServerDownException] {
-        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Unable to reach Active Directory. Sleeping for 5 and trying again..."
-        Start-Sleep 5
-      }
-      catch {
-        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Something went wrong attempting to reach AD or create the OU."
-      }
+- name: Copy WEF GPO
+  ansible.windows.win_copy:
+    src: ./resources/gpo
+    dest: C:\Users\deploy\AppData\Local\Temp
+
+- name: Assign GPOs to each OU
+  win_shell: |
+    $dcGPO = "Domain Controller Enhanced Auditing Policy"
+    $serverGPO = "Server Enhanced Auditing Policy"
+    $workstationGPO = "Workstation Enhanced Auditing Policy"
+    $wefGPO = "Windows Event Forwarding"
+
+    $OU = "ou=Domain Controllers,dc=dac,dc=local"
+    Import-GPO -BackupGpoName $dcGPO -Path "C:\Users\deploy\AppData\Local\Temp\gpo" -TargetName $dcGPO -CreateIfNeeded
+    New-GPLink -Name $dcGPO -Target $OU -Enforced yes
+    Import-GPO -BackupGpoName $wefGPO -Path "C:\Users\deploy\AppData\Local\Temp\gpo" -TargetName $wefGPO -CreateIfNeeded
+    New-GPLink -Name $wefGPO -Target $OU -Enforced yes
+
+    $OU = "OU=Servers,dc=dac,dc=local"
+    Import-GPO -BackupGpoName $serverGPO -Path "C:\Users\deploy\AppData\Local\Temp\gpo" -TargetName $serverGPO -CreateIfNeeded
+    New-GPLink -Name $serverGPO -Target $OU -Enforced yes
+    Import-GPO -BackupGpoName $wefGPO -Path "C:\Users\deploy\AppData\Local\Temp\gpo" -TargetName $wefGPO -CreateIfNeeded
+    New-GPLink -Name $wefGPO -Target $OU -Enforced yes
+
+    $OU = "OU=Workstations,dc=dac,dc=local"
+    Import-GPO -BackupGpoName $workstationGPO -Path "C:\Users\deploy\AppData\Local\Temp\gpo" -TargetName $workstationGPO -CreateIfNeeded
+    New-GPLink -Name $workstationGPO -Target $OU -Enforced yes
+    Import-GPO -BackupGpoName $wefGPO -Path "C:\Users\deploy\AppData\Local\Temp\gpo" -TargetName $wefGPO -CreateIfNeeded
+    New-GPLink -Name $wefGPO -Target $OU -Enforced yes
+  register: assign_gpo
+  failed_when: "'Exception' in assign_gpo.stdout"
+
+- name: Downloading the Palantir WEF Configuration
+  win_shell: |
+    Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Downloading and unzipping the Palantir Windows Event Forwarding Repo from Github..."
+    if (-not ([Net.ServicePointManager]::SecurityProtocol).tostring().contains("Tls12")){ #there is no need to set Tls12 in 1809 releases, therefore for insider it does not apply
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     }
-  register: ou_creation
-  vars:
-    ansible_become: yes
-    ansible_become_method: runas
-    ansible_become_user: dac.local\deploy
-    ansible_become_password: deploy
-    ansible_become_flags: logon_type=new_credentials logon_flags=netcredentials_only
-  failed_when: "'Exception' in ou_creation.stderr"
+    Invoke-WebRequest -UseBasicParsing -Uri https://github.com/palantir/windows-event-forwarding/archive/master.zip -OutFile $env:USERPROFILE\AppData\Local\Temp\PalantirWEF.zip
+
+    Expand-Archive -Path $env:USERPROFILE\AppData\Local\Temp\PalantirWEF.zip -DestinationPath $env:USERPROFILE\AppData\Local\Temp
+
+    Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Palantir WEF download complete!"
+  register: palantir_wef
+  failed_when: "'Exception' in palantir_wef.stdout"
+
+- name: Install Autoruns to Event Log
+  win_shell: |
+    Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Installing AutorunsToWinEventLog..."
+    If ((Get-ScheduledTask -TaskName "AutorunsToWinEventLog" -ea silent) -eq $null) {
+      (Get-Content $env:USERPROFILE\AppData\Local\Temp\windows-event-forwarding-master\AutorunsToWinEventLog\Install.ps1 -Raw) -replace 'Invoke-WebRequest -Uri "https://live.sysinternals.com/autorunsc64.exe" -OutFile "\$autorunsPath"', 'Try {
+      (New-Object System.Net.WebClient).DownloadFile(''https://live.sysinternals.com/Autoruns64.exe'', $autorunsPath)
+    }
+    Catch {
+      (New-Object System.Net.WebClient).DownloadFile(''http://live.sysinternals.com/Autoruns64.exe'', $autorunsPath)
+    }' | Set-Content -Path "$env:USERPROFILE\AppData\Local\Temp\windows-event-forwarding-master\AutorunsToWinEventLog\Install.ps1"
+        . $env:USERPROFILE\AppData\Local\Temp\windows-event-forwarding-master\AutorunsToWinEventLog\Install.ps1
+        Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) AutorunsToWinEventLog installed. Starting the scheduled task. Future runs will begin at 11am"
+        Start-ScheduledTask -TaskName "AutorunsToWinEventLog"
+        $Timeout = 30
+        $timer = [Diagnostics.Stopwatch]::StartNew()
+        while (($timer.Elapsed.TotalSeconds -lt $Timeout) -and ((Get-ScheduledTask -TaskName "AutorunsToWinEventLog").State -ne "Running")) {
+          Start-Sleep -Seconds 3
+          Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Still waiting for scheduled task to start after "$timer.Elapsed.Seconds" seconds..."
+        }
+        $timer.Stop()
+        $Tsk = Get-ScheduledTask -TaskName "AutorunsToWinEventLog"
+        if ($Tsk.State -ne "Running")
+        {
+          throw "AutorunsToWinEventLog scheduled tasks were not running after starting it"
+        }
+    }
+    else
+    {
+      Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) AutorunsToWinEventLog already installed. Moving On."
+    }

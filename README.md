@@ -83,3 +83,10 @@ The following assumptions are made:
     ```
     ./destory.sh
     ```
+
+
+# Reproduction
+
+## Group policies
+The group policies stored in `ansible/resources/gpo` are backups using GPMC that were created using following the guidance:
+- https://github.com/palantir/windows-event-forwarding/tree/master/group-policy-objects

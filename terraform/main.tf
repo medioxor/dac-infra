@@ -103,6 +103,49 @@ resource "proxmox_vm_qemu" "dc" {
   }
 }
 
+resource "proxmox_vm_qemu" "wef" {
+  name = "wef"
+  target_node = var.proxmox_node
+  clone = "WindowsServer2025"
+  full_clone = false
+  desc = "wef"
+  cores = "2"
+  sockets = "1"
+  memory = "2048"
+  scsihw = "virtio-scsi-pci"
+  bootdisk = "scsi0"
+  agent = 1
+  onboot = false
+  cpu_type = "x86-64-v2-AES"
+  skip_ipv6 = true
+
+  disk {
+    slot = "scsi0"
+    size = "64G"
+    type = "disk"
+    storage = var.vm_disk
+    cache = "writeback"
+    format = "raw"
+    discard = true
+  }
+
+  network {
+    id = 0
+    model = "virtio"
+    bridge = var.proxmox_lan
+    macaddr = "00:50:56:a3:b1:c6"
+    firewall = false
+  }
+
+  network {
+    id = 1
+    model = "virtio"
+    bridge = var.vm_network
+    macaddr = "00:50:56:a3:b1:c7"
+    firewall = false
+  }
+}
+
 resource "proxmox_vm_qemu" "workstation1" {
   name = "workstation1"
   target_node = var.proxmox_node

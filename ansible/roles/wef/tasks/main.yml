@@ -1,19 +1,20 @@
 ---
-- name: Generate new hostname
-  win_shell: |
-    $prefix = "WS"
-    $random = Get-Random -Minimum 100 -Maximum 999
-    $NewName = "$prefix$random"
-    Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) New hostname is $($NewName)."
-    Rename-Computer -NewName $NewName -Force
-  register: hostname_change
+
+- name: Hostname -> WEF
+  win_hostname:
+    name: wef
+  register: res
 
 - name: Reboot
   win_reboot:
-    msg: "Rebooting..."
-    pre_reboot_delay: 15
-    reboot_timeout: 600
-    post_reboot_delay: 60
+  when: res.reboot_required
+
+- name: Install RSAT-AD-PowerShell
+  ansible.windows.win_feature:
+    name:
+      - RSAT-AD-PowerShell
+    state: present
+    include_management_tools: yes
 
 - name: Set DNS to Domain Controller
   win_shell: |
@@ -25,7 +26,7 @@
       netsh interface ip set wins name="$($_.Name)" static $DomainControllerIP
     }
 
-- name: Join Workstation to Domain
+- name: Join WEF server to domain
   win_shell: |
     Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) Joining domain..."
     ipconfig /renew
@@ -33,7 +34,7 @@
     $DomainPassword = "deploy"
     $DomainName = "dac.local"
     $DomainCredential = New-Object System.Management.Automation.PSCredential ($DomainUser, (ConvertTo-SecureString $DomainPassword -AsPlainText -Force))
-    Add-Computer -DomainName $DomainName -credential $DomainCredential -OUPath "ou=Workstations,dc=dac,dc=local" -PassThru -ErrorAction Stop
+    Add-Computer -DomainName $DomainName -credential $DomainCredential -OUPath "ou=Servers,dc=dac,dc=local" -PassThru -ErrorAction Stop
   register: domain_join
   changed_when: "'True' in domain_join.stdout"
   failed_when: "'InvalidOperationException' in domain_join.stderr"
@@ -82,3 +83,33 @@
     {
       Write-Host "$('[{0:HH:mm}]' -f (Get-Date)) AutorunsToWinEventLog already installed. Moving On."
     }
+
+- name: Subscribe to events and add SIDs
+  win_shell: |
+    WECUtil qc /q
+    Stop-Service Wecsvc
+
+    $files="CustomEventChannels.dll","CustomEventChannels.man"
+    $Path="$env:USERPROFILE\AppData\Local\Temp\windows-event-forwarding-master\windows-event-channels"
+    foreach ($file in $files){
+        Copy-Item -Path "$path\$file" -Destination C:\Windows\system32
+    }
+
+    wevtutil im C:\windows\system32\CustomEventChannels.man
+    Start-Service Wecsvc
+
+    $XMLFiles=Get-ChildItem "$env:USERPROFILE\AppData\Local\Temp\windows-event-forwarding-master\wef-subscriptions" | Where Extension -eq ".xml"
+    foreach ($XMLFile in $XMLFiles){
+      $SID=(Get-ADGroup -Identity $XMLFile.Basename).SID.Value
+      $AllowedSourceDomainComputers="O:NSG:BAD:P(A;;GA;;;$SID)S:"
+      [xml]$xml=get-content $XMLFile.FullName
+      $xml.subscription.AllowedSourceDomainComputers=$AllowedSourceDomainComputers
+      $xml.Save("$env:TEMP\temp.xml")
+      wecutil cs "$env:TEMP\temp.xml"
+    }
+  vars:
+    ansible_become: yes
+    ansible_become_method: runas
+    ansible_become_user: dac.local\deploy
+    ansible_become_password: deploy
+    ansible_become_flags: logon_type=new_credentials logon_flags=netcredentials_only

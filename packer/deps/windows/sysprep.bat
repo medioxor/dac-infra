@@ -1,0 +1,1 @@
+C:\Windows\System32\Sysprep\sysprep.exe /mode:vm /generalize /quit /oobe /unattend:E:\unattend.xml

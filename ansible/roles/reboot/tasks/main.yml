@@ -1,0 +1,11 @@
+- name: Update group policy
+  win_shell: "gpupdate /force"
+  retries: 3
+
+- name: Clear Event Logs
+  win_shell: "wevtutil el | Select-String -notmatch \"Microsoft-Windows-LiveId\" | Foreach-Object {wevtutil cl \"$_\"}"
+  retries: 3
+
+- name: Reboot
+  win_reboot:
+    msg: "Rebooting..."

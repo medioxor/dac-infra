@@ -49,7 +49,8 @@
       "additional_iso_files": [
         {
           "cd_files": [
-            "./deps/windows_server_2025/Autounattend.xml"
+            "./deps/windows_server_2025/Autounattend.xml",
+            "./deps/windows_server_2025/unattend.xml"
           ],
           "cd_label": "cidata",
           "iso_storage_pool": "{{user `proxmox_iso_storage_pool`}}",
@@ -78,13 +79,17 @@
       "elevated_user": "deploy",
       "elevated_password": "deploy",
       "scripts": [
-        "./deps/windows_11/update-windows.ps1"
+        "./deps/windows_11/update-windows.ps1",
+        "./deps/windows_11/disable-screensaver.ps1"
       ]
+    },
+    {
+      "type": "windows-restart"
     },
     {
       "type": "windows-shell",
       "remote_path": "/tmp/script.bat",
-      "execute_command": "cmd /c \"{{ .Path }}\"",
+      "execute_command": "{{ .Vars }} cmd /c \"{{ .Path }}\"",
       "scripts": [
         "./deps/windows_11/enable-rdp.bat"
       ]
@@ -93,11 +98,11 @@
       "type": "windows-restart"
     },
     {
-      "type": "powershell",
-      "elevated_user": "deploy",
-      "elevated_password": "deploy",
+      "type": "windows-shell",
+      "remote_path": "/tmp/script.bat",
+      "execute_command": "{{ .Vars }} cmd /c \"{{ .Path }}\"",
       "scripts": [
-        "./deps/windows_11/disable-screensaver.ps1"
+        "./deps/windows/sysprep.bat"
       ]
     }
   ]
